@@ -1,0 +1,61 @@
+class AppDatabase {
+  static final AppDatabase _instance = AppDatabase._internal();
+  factory AppDatabase() => _instance;
+  AppDatabase._internal();
+
+  bool _initialized = false;
+
+  final List<Map<String, String>> customers = [
+    {"id": "1", "name": "Stadt Dortmund (Grünflächenamt)", "phone": "0231 50-0", "email": "gruenflaechen@dortmund.de"},
+    {"id": "2", "name": "Vonovia Wohnungs AG", "phone": "0234 314-0", "email": "kontakt@vonovia.de"},
+    {"id": "3", "name": "Privatkunde Dr. Weber", "phone": "0172 5554433", "email": "weber@t-online.de"}
+  ];
+
+  final List<Map<String, String>> sites = [
+    {"id": "1", "title": "Parkpflege Westfalenpark", "address": "Strobelallee 45, Dortmund"},
+    {"id": "2", "title": "Baumfällung Aplerbeck", "address": "Schüchtermannstraße 12, Dortmund"}
+  ];
+
+  final List<Map<String, String>> orders = [
+    {"id": "1", "description": "Kroneneinschnitt & Totholzentfernung", "status": "In Arbeit"},
+    {"id": "2", "description": "Heckenschnitt & Rückschnitt", "status": "Geplant"}
+  ];
+
+  final List<Map<String, String>> employees = [
+    {"id": "1", "name": "René Pincus", "role": "Inhaber / Meister"},
+    {"id": "2", "name": "Kevin Müller", "role": "Baumpfleger"},
+    {"id": "3", "name": "Stefan Berger", "role": "Landschaftsgärtner"}
+  ];
+
+  final List<Map<String, String>> timeEntries = [
+    {"id": "1", "employee": "René Pincus", "task": "Westfalenpark - Schnittarbeiten", "hours": "6.5", "date": "2026-08-26"},
+    {"id": "2", "employee": "Kevin Müller", "task": "Aplerbeck - Fällung", "hours": "8.0", "date": "2026-08-26"},
+    {"id": "3", "employee": "Stefan Berger", "task": "Westfalenpark - Heckenschnitt", "hours": "7.5", "date": "2026-08-27"},
+    {"id": "4", "employee": "Kevin Müller", "task": "Aplerbeck - Aufräumarbeiten", "hours": "4.0", "date": "2026-08-27"}
+  ];
+
+  final List<Map<String, String>> calendarEvents = [
+    {"id": "1", "title": "Großauftrag Westfalenpark", "date": "2026-08-28", "time": "08:00", "type": "Baustelle", "assigned": "René Pincus & Team"},
+    {"id": "2", "title": "Kundenbesprechung Dr. Weber", "date": "2026-08-30", "time": "14:00", "type": "Termin", "assigned": "René Pincus"},
+    {"id": "3", "title": "Jahrespflege Rückschnitt Herbst", "date": "2026-09-15", "time": "08:00", "type": "Jahreskalender", "assigned": "Gesamtes Team"},
+    {"id": "4", "title": "Baumkontrolle & Standsicherheitsprüfung", "date": "2026-10-10", "time": "09:30", "type": "Jahreskalender", "assigned": "René Pincus"}
+  ];
+
+  final List<Map<String, String>> materials = [
+    {"id": "1", "name": "Motorsäge Husqvarna 560XP", "category": "Gerät", "site": "Baumfällung Aplerbeck"},
+    {"id": "2", "name": "Freischneider FS 460", "category": "Gerät", "site": "Westfalenpark"},
+    {"id": "3", "name": "Kettensägenöl & Sonderkraftstoff", "category": "Verbrauchsmaterial", "site": "Alle Baustellen"},
+    {"id": "4", "name": "Wundenverschlussmittel / Wundbalsam", "category": "Material", "site": "Westfalenpark"}
+  ];
+
+  final List<Map<String, String>> estimates = [
+    {"id": "1", "customer": "Stadt Dortmund (Grünflächenamt)", "title": "Baumpflege & Kronenpflege Westfalenpark", "amount": "2.450,00 €", "status": "Versendet", "date": "2026-08-20"},
+    {"id": "2", "customer": "Privatkunde Dr. Weber", "title": "Fällung Problembaum & Stubbenfräsen", "amount": "890,00 €", "status": "Entwurf", "date": "2026-08-26"}
+  ];
+
+  Future<void> init() async {
+    if (_initialized) return;
+    await Future.delayed(const Duration(milliseconds: 100));
+    _initialized = true;
+  }
+}

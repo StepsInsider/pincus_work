@@ -1,70 +1,53 @@
-class AppDatabase {
-  static final AppDatabase _instance = AppDatabase._internal();
-  factory AppDatabase() => _instance;
-  AppDatabase._internal();
+import 'package:drift/drift.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
-  bool _initialized = false;
+part 'app_database.g.dart';
 
-  final List<Map<String, dynamic>> customers = [
-    {"id": "1", "name": "Stadt Dortmund (Grünflächenamt)", "phone": "0231 50-0", "email": "gruenflaechen@dortmund.de"},
-    {"id": "2", "name": "Vonovia Wohnungs AG", "phone": "0234 314-0", "email": "kontakt@vonovia.de"},
-    {"id": "3", "name": "Privatkunde Dr. Weber", "phone": "0172 5554433", "email": "weber@t-online.de"}
-  ];
+class Sites extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+  TextColumn get address => text()();
+  TextColumn get customerId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
 
-  final List<Map<String, dynamic>> sites = [
-    {"id": "1", "title": "Parkpflege Westfalenpark", "address": "Strobelallee 45, Dortmund"},
-    {"id": "2", "title": "Baumfällung Aplerbeck", "address": "Schüchtermannstraße 12, Dortmund"}
-  ];
+class TimeEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get siteId => integer().references(Sites, #id)();
+  TextColumn get employeeName => text()();
+  DateTimeColumn get date => dateTime()(); // Tag der Leistung
+  DateTimeColumn get startTime => dateTime()();
+  DateTimeColumn get endTime => dateTime().nullable()();
+  RealColumn get breakMinutes => real().withDefault(const Constant(0.0))();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
 
-  final List<Map<String, dynamic>> orders = [
-    {"id": "1", "description": "Kroneneinschnitt & Totholzentfernung", "status": "In Arbeit"},
-    {"id": "2", "description": "Heckenschnitt & Rückschnitt", "status": "Geplant"}
-  ];
+class SitePhotos extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get siteId => integer().references(Sites, #id)();
+  TextColumn get category => text()(); // Vorher, Arbeitsfortschritt, Nachher, Mangel, Material, Maschine, Abnahme
+  TextColumn get filePath => text()(); // Lokaler Speicherpfad auf dem Gerät
+  TextColumn get notes => text().nullable()();
+  RealColumn get latitude => real().nullable()();
+  RealColumn get longitude => real().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
 
-  final List<Map<String, dynamic>> employees = [
-    {"id": "1", "name": "René Pincus", "role": "Inhaber / Meister"},
-    {"id": "2", "name": "Kevin Müller", "role": "Baumpfleger"},
-    {"id": "3", "name": "Stefan Berger", "role": "Landschaftsgärtner"}
-  ];
+@DriftDatabase(tables: [Sites, TimeEntries, SitePhotos])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(_openConnection());
 
-  final List<Map<String, dynamic>> timeEntries = [
-    {"id": "1", "employee": "René Pincus", "task": "Westfalenpark - Schnittarbeiten", "hours": "6.5", "date": "2026-08-26"},
-    {"id": "2", "employee": "Kevin Müller", "task": "Aplerbeck - Fällung", "hours": "8.0", "date": "2026-08-26"},
-    {"id": "3", "employee": "Stefan Berger", "task": "Westfalenpark - Heckenschnitt", "hours": "7.5", "date": "2026-08-27"},
-    {"id": "4", "employee": "Kevin Müller", "task": "Aplerbeck - Aufräumarbeiten", "hours": "4.0", "date": "2026-08-27"}
-  ];
+  @override
+  int get schemaVersion => 1;
 
-  final List<Map<String, dynamic>> calendarEvents = [
-    {"id": "1", "title": "Großauftrag Westfalenpark", "date": "2026-08-28", "time": "08:00", "type": "Baustelle", "assigned": "René Pincus & Team"},
-    {"id": "2", "title": "Kundenbesprechung Dr. Weber", "date": "2026-08-30", "time": "14:00", "type": "Termin", "assigned": "René Pincus"},
-    {"id": "3", "title": "Jahrespflege Rückschnitt Herbst", "date": "2026-09-15", "time": "08:00", "type": "Jahreskalender", "assigned": "Gesamtes Team"},
-    {"id": "4", "title": "Baumkontrolle & Standsicherheitsprüfung", "date": "2026-10-10", "time": "09:30", "type": "Jahreskalender", "assigned": "René Pincus"}
-  ];
-
-  final List<Map<String, dynamic>> reports = [];
-
-  final List<Map<String, dynamic>> materials = [
-    {"id": "1", "name": "Motorsäge Husqvarna 560XP", "category": "Gerät", "site": "Baumfällung Aplerbeck"},
-    {"id": "2", "name": "Freischneider FS 460", "category": "Gerät", "site": "Westfalenpark"},
-    {"id": "3", "name": "Kettensägenöl & Sonderkraftstoff", "category": "Verbrauchsmaterial", "site": "Alle Baustellen"},
-    {"id": "4", "name": "Wundenverschlussmittel / Wundbalsam", "category": "Material", "site": "Westfalenpark"}
-  ];
-
-  final List<Map<String, dynamic>> estimates = [
-    {"id": "1", "customer": "Stadt Dortmund (Grünflächenamt)", "title": "Baumpflege & Kronenpflege Westfalenpark", "amount": "2.450,00 €", "status": "Versendet", "date": "2026-08-20"},
-    {"id": "2", "customer": "Privatkunde Dr. Weber", "title": "Fällung Problembaum & Stubbenfräsen", "amount": "890,00 €", "status": "Entwurf", "date": "2026-08-26"}
-  ];
-
-  /// Persistenz-Hook für die Repository-Schicht.
-  /// Die aktuelle lokale Datenbank arbeitet im Speicher.
-  /// Eine dauerhafte JSON-/Supabase-Persistenz kann später hier angebunden werden.
-  Future<void> saveAll() async {
-    await Future<void>.delayed(Duration.zero);
-  }
-
-  Future<void> init() async {
-    if (_initialized) return;
-    await Future.delayed(const Duration(milliseconds: 100));
-    _initialized = true;
+  static LazyDatabase _openConnection() {
+    return LazyDatabase(() async {
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final file = File(p.join(dbFolder.path, 'pincus_database.db'));
+      return NativeDatabase(file);
+    });
   }
 }

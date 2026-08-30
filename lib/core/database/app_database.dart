@@ -36,7 +36,42 @@ class SitePhotos extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Sites, TimeEntries, SitePhotos])
+class TasksTable extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get siteId => integer().references(Sites, #id)();
+  TextColumn get title => text()();
+  TextColumn get category => text()(); // Mangel, Aufgabe, etc.
+  TextColumn get priority => text().withDefault(const Constant('normal'))();
+  TextColumn get status => text().withDefault(const Constant('offen'))();
+  DateTimeColumn get dueDate => dateTime()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class MachinesTable extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get serialNumber => text().nullable()();
+  RealColumn get operatingHours => real().withDefault(const Constant(0.0))();
+  DateTimeColumn get nextInspectionDate => dateTime().nullable()();
+  TextColumn get status => text().withDefault(const Constant('bereit'))();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class MaterialsTable extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get category => text().nullable()();
+  TextColumn get unit => text().nullable()(); // kg, Stück, Liter, etc.
+  RealColumn get stock => real().withDefault(const Constant(0.0))();
+  RealColumn get minimumStock => real().withDefault(const Constant(0.0))();
+  RealColumn get unitPrice => real().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Sites, TimeEntries, SitePhotos, TasksTable, MachinesTable, MaterialsTable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 

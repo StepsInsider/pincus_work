@@ -1,13 +1,21 @@
+import 'package:drift/drift.dart';
+
 import '../../core/database/app_database.dart';
 
 class TimeRepository {
-  final AppDatabase _db = AppDatabase();
+  final AppDatabase _db;
 
-  List<Map<String, dynamic>> getAll() {
-    return List<Map<String, dynamic>>.from(_db.timeEntries);
+  TimeRepository([AppDatabase? db]) : _db = db ?? AppDatabase();
+
+  Future<List<TimeEntry>> getAll() {
+    return (_db.select(_db.timeEntries)
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.startTime),
+          ]))
+        .get();
   }
 
-  Future<void> add({
+  Future<int> add({
     required String employeeId,
     required String employeeName,
     required String siteId,
@@ -15,18 +23,24 @@ class TimeRepository {
     required double hours,
     required String date,
     String note = '',
-  }) async {
-    _db.timeEntries.add({
-      'id': 't_${DateTime.now().millisecondsSinceEpoch}',
-      'employeeId': employeeId,
-      'employeeName': employeeName,
-      'siteId': siteId,
-      'siteTitle': siteTitle,
-      'hours': hours,
-      'date': date,
-      'note': note,
-    });
+  }) {
+    final start = DateTime.parse(date);
 
-    await _db.saveAll();
+    final end = start.add(
+      Duration(
+        minutes: (hours * 60).round(),
+      ),
+    );
+
+    return _db.into(_db.timeEntries).insert(
+          TimeEntriesCompanion.insert(
+            siteId: int.parse(siteId),
+            employeeName: employeeName,
+            date: start,
+            startTime: start,
+            endTime: Value(end),
+            notes: Value(note),
+          ),
+        );
   }
 }

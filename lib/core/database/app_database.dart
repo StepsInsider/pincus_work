@@ -1,87 +1,239 @@
-import 'package:drift/drift.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
+class Customers extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get name => text()();
+
+  TextColumn get contact => text().withDefault(const Constant(''))();
+
+  TextColumn get phone => text().withDefault(const Constant(''))();
+
+  TextColumn get address => text().withDefault(const Constant(''))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Employees extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get name => text()();
+
+  TextColumn get role => text()();
+
+  RealColumn get targetHours => real().withDefault(const Constant(40.0))();
+
+  TextColumn get color => text().withDefault(const Constant('0xFF2E7D32'))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class Sites extends Table {
   IntColumn get id => integer().autoIncrement()();
+
   TextColumn get title => text()();
+
   TextColumn get address => text()();
-  TextColumn get customerId => text().nullable()();
+
+  TextColumn get customerId => text().nullable().references(Customers, #id)();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class Orders extends Table {
+  TextColumn get id => text()();
+
+  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+
+  TextColumn get customerId => text().nullable().references(Customers, #id)();
+
+  TextColumn get title => text()();
+
+  TextColumn get status => text().withDefault(const Constant('Neu'))();
+
+  TextColumn get date => text()();
+
+  RealColumn get price => real().withDefault(const Constant(0.0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Reports extends Table {
+  TextColumn get id => text()();
+
+  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+
+  TextColumn get title => text()();
+
+  TextColumn get date => text()();
+
+  TextColumn get content => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 class TimeEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
+
   IntColumn get siteId => integer().references(Sites, #id)();
+
   TextColumn get employeeName => text()();
-  DateTimeColumn get date => dateTime()(); // Tag der Leistung
+
+  DateTimeColumn get date => dateTime()();
+
   DateTimeColumn get startTime => dateTime()();
+
   DateTimeColumn get endTime => dateTime().nullable()();
+
   RealColumn get breakMinutes => real().withDefault(const Constant(0.0))();
+
   TextColumn get notes => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class SitePhotos extends Table {
   IntColumn get id => integer().autoIncrement()();
+
   IntColumn get siteId => integer().references(Sites, #id)();
-  TextColumn get category => text()(); // Vorher, Arbeitsfortschritt, Nachher, Mangel, Material, Maschine, Abnahme
-  TextColumn get filePath => text()(); // Lokaler Speicherpfad auf dem Gerät
+
+  TextColumn get category => text()();
+
+  TextColumn get filePath => text()();
+
   TextColumn get notes => text().nullable()();
+
   RealColumn get latitude => real().nullable()();
+
   RealColumn get longitude => real().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class TasksTable extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get siteId => integer().references(Sites, #id)();
+
+  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+
   TextColumn get title => text()();
-  TextColumn get category => text()(); // Mangel, Aufgabe, etc.
+
+  TextColumn get description => text().nullable()();
+
+  TextColumn get category => text()();
+
   TextColumn get priority => text().withDefault(const Constant('normal'))();
+
   TextColumn get status => text().withDefault(const Constant('offen'))();
-  DateTimeColumn get dueDate => dateTime()();
-  TextColumn get notes => text().nullable()();
+
+  DateTimeColumn get dueDate => dateTime().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class MachinesTable extends Table {
   IntColumn get id => integer().autoIncrement()();
+
   TextColumn get name => text()();
+
   TextColumn get serialNumber => text().nullable()();
+
   RealColumn get operatingHours => real().withDefault(const Constant(0.0))();
+
   DateTimeColumn get nextInspectionDate => dateTime().nullable()();
+
   TextColumn get status => text().withDefault(const Constant('bereit'))();
+
   TextColumn get notes => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class MaterialsTable extends Table {
   IntColumn get id => integer().autoIncrement()();
+
   TextColumn get name => text()();
+
+  TextColumn get articleNumber => text().nullable()();
+
   TextColumn get category => text().nullable()();
-  TextColumn get unit => text().nullable()(); // kg, Stück, Liter, etc.
+
+  TextColumn get unit => text().withDefault(const Constant('Stk'))();
+
   RealColumn get stock => real().withDefault(const Constant(0.0))();
+
   RealColumn get minimumStock => real().withDefault(const Constant(0.0))();
+
+  TextColumn get location => text().nullable()();
+
   RealColumn get unitPrice => real().nullable()();
+
   TextColumn get notes => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 }
 
-@DriftDatabase(tables: [Sites, TimeEntries, SitePhotos, TasksTable, MachinesTable, MaterialsTable])
+@DriftDatabase(
+  tables: [
+    Customers,
+    Employees,
+    Sites,
+    Orders,
+    Reports,
+    TimeEntries,
+    SitePhotos,
+    TasksTable,
+    MachinesTable,
+    MaterialsTable,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 2) {
+            await m.createTable(customers);
+            await m.createTable(employees);
+            await m.createTable(orders);
+            await m.createTable(reports);
+          }
+        },
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
+      );
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
       final dbFolder = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dbFolder.path, 'pincus_database.db'));
+
+      final file = File(
+        p.join(
+          dbFolder.path,
+          'pincus_database.db',
+        ),
+      );
+
       return NativeDatabase(file);
     });
   }

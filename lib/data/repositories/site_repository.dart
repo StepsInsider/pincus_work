@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import '../../core/database/app_database.dart';
 
 class SiteRepository {

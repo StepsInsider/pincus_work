@@ -92,6 +92,14 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         children: [
           if (!isMobile)
             NavigationRail(
+              leading: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 50,
+                  fit: BoxFit.contain,
+                ),
+              ),
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) {
                 setState(() => _selectedIndex = index);

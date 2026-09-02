@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' show Value;
 import 'core/database/app_database.dart';
 
 const _green = Color(0xFF2E7D32);
@@ -363,12 +363,7 @@ class _StatCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(color: _lightGreen, borderRadius: BorderRadius.circular(14)),
-              child: Icon(icon, color: _green, size: 29),
-            ),
+            Container(width: 54, height: 54, decoration: BoxDecoration(color: _lightGreen, borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: _green, size: 29)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -396,13 +391,7 @@ class _QuickAction extends StatelessWidget {
   const _QuickAction({required this.icon, required this.title, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: _green),
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      );
+  Widget build(BuildContext context) => ListTile(contentPadding: EdgeInsets.zero, leading: Icon(icon, color: _green), title: Text(title), trailing: const Icon(Icons.chevron_right), onTap: onTap);
 }
 
 class _Watermark extends StatelessWidget {
@@ -413,10 +402,7 @@ class _Watermark extends StatelessWidget {
     return IgnorePointer(
       child: Align(
         alignment: Alignment.center,
-        child: Opacity(
-          opacity: .055,
-          child: Icon(Icons.park, size: 600, color: _green),
-        ),
+        child: Opacity(opacity: .055, child: Icon(Icons.park, size: 600, color: _green)),
       ),
     );
   }
@@ -433,45 +419,14 @@ class _ModuleConfig {
 
   const _ModuleConfig({required this.title, required this.subtitle, required this.icon, required this.type, required this.fields});
 
-  factory _ModuleConfig.sites() => const _ModuleConfig(
-        title: 'Baustellen', subtitle: 'Baustellen und Einsatzorte verwalten', icon: Icons.location_on, type: _ModuleType.sites,
-        fields: [_FieldDef('title', 'Bezeichnung', required: true), _FieldDef('address', 'Adresse', required: true), _FieldDef('customerId', 'Kunden-ID')],
-      );
-
-  factory _ModuleConfig.customers() => const _ModuleConfig(
-        title: 'Kunden', subtitle: 'Kontakte und Kundendaten verwalten', icon: Icons.people, type: _ModuleType.customers,
-        fields: [_FieldDef('name', 'Name / Firma', required: true), _FieldDef('contact', 'Ansprechpartner'), _FieldDef('phone', 'Telefon'), _FieldDef('address', 'Adresse')],
-      );
-
-  factory _ModuleConfig.orders() => const _ModuleConfig(
-        title: 'Aufträge', subtitle: 'Aufträge, Status, Termine und Preise', icon: Icons.assignment, type: _ModuleType.orders,
-        fields: [_FieldDef('title', 'Auftragsbezeichnung', required: true), _FieldDef('customerId', 'Kunden-ID'), _FieldDef('siteId', 'Baustellen-ID'), _FieldDef('status', 'Status', initial: 'Neu'), _FieldDef('date', 'Termin / Datum', required: true), _FieldDef('price', 'Preis', keyboard: TextInputType.number)],
-      );
-
-  factory _ModuleConfig.employees() => const _ModuleConfig(
-        title: 'Mitarbeiter', subtitle: 'Team, Rollen und Sollstunden', icon: Icons.groups, type: _ModuleType.employees,
-        fields: [_FieldDef('name', 'Name', required: true), _FieldDef('role', 'Rolle / Tätigkeit', required: true), _FieldDef('targetHours', 'Sollstunden / Woche', keyboard: TextInputType.number, initial: '40')],
-      );
-
-  factory _ModuleConfig.timeEntries() => const _ModuleConfig(
-        title: 'Zeiterfassung', subtitle: 'Arbeitszeiten und Pausen dokumentieren', icon: Icons.schedule, type: _ModuleType.timeEntries,
-        fields: [_FieldDef('employeeName', 'Mitarbeiter', required: true), _FieldDef('siteId', 'Baustellen-ID', required: true), _FieldDef('date', 'Datum', required: true), _FieldDef('startTime', 'Beginn', required: true), _FieldDef('endTime', 'Ende'), _FieldDef('breakMinutes', 'Pause in Minuten', keyboard: TextInputType.number, initial: '0'), _FieldDef('notes', 'Notizen')],
-      );
-
-  factory _ModuleConfig.reports() => const _ModuleConfig(
-        title: 'Berichte', subtitle: 'Baustellenberichte dokumentieren', icon: Icons.description, type: _ModuleType.reports,
-        fields: [_FieldDef('title', 'Titel', required: true), _FieldDef('siteId', 'Baustellen-ID'), _FieldDef('date', 'Datum', required: true), _FieldDef('content', 'Bericht / Inhalt', multiline: true)],
-      );
-
-  factory _ModuleConfig.materials() => const _ModuleConfig(
-        title: 'Material', subtitle: 'Materialbestand und Artikel verwalten', icon: Icons.inventory_2, type: _ModuleType.materials,
-        fields: [_FieldDef('name', 'Material / Artikel', required: true), _FieldDef('articleNumber', 'Artikelnummer'), _FieldDef('category', 'Kategorie'), _FieldDef('unit', 'Einheit', initial: 'Stk'), _FieldDef('stock', 'Bestand', keyboard: TextInputType.number, initial: '0'), _FieldDef('minimumStock', 'Mindestbestand', keyboard: TextInputType.number, initial: '0'), _FieldDef('location', 'Lagerort'), _FieldDef('unitPrice', 'Einzelpreis', keyboard: TextInputType.number), _FieldDef('notes', 'Notizen', multiline: true)],
-      );
-
-  factory _ModuleConfig.machines() => const _ModuleConfig(
-        title: 'Maschinen', subtitle: 'Maschinen, Betriebsstunden und Prüfungen', icon: Icons.construction, type: _ModuleType.machines,
-        fields: [_FieldDef('name', 'Maschine', required: true), _FieldDef('serialNumber', 'Seriennummer'), _FieldDef('operatingHours', 'Betriebsstunden', keyboard: TextInputType.number, initial: '0'), _FieldDef('status', 'Status', initial: 'bereit'), _FieldDef('notes', 'Notizen', multiline: true)],
-      );
+  factory _ModuleConfig.sites() => const _ModuleConfig(title: 'Baustellen', subtitle: 'Baustellen und Einsatzorte verwalten', icon: Icons.location_on, type: _ModuleType.sites, fields: [_FieldDef('title', 'Bezeichnung', required: true), _FieldDef('address', 'Adresse', required: true), _FieldDef('customerId', 'Kunden-ID')]);
+  factory _ModuleConfig.customers() => const _ModuleConfig(title: 'Kunden', subtitle: 'Kontakte und Kundendaten verwalten', icon: Icons.people, type: _ModuleType.customers, fields: [_FieldDef('name', 'Name / Firma', required: true), _FieldDef('contact', 'Ansprechpartner'), _FieldDef('phone', 'Telefon'), _FieldDef('address', 'Adresse')]);
+  factory _ModuleConfig.orders() => const _ModuleConfig(title: 'Aufträge', subtitle: 'Aufträge, Status, Termine und Preise', icon: Icons.assignment, type: _ModuleType.orders, fields: [_FieldDef('title', 'Auftragsbezeichnung', required: true), _FieldDef('customerId', 'Kunden-ID'), _FieldDef('siteId', 'Baustellen-ID'), _FieldDef('status', 'Status', initial: 'Neu'), _FieldDef('date', 'Termin / Datum', required: true), _FieldDef('price', 'Preis', keyboard: TextInputType.number)]);
+  factory _ModuleConfig.employees() => const _ModuleConfig(title: 'Mitarbeiter', subtitle: 'Team, Rollen und Sollstunden', icon: Icons.groups, type: _ModuleType.employees, fields: [_FieldDef('name', 'Name', required: true), _FieldDef('role', 'Rolle / Tätigkeit', required: true), _FieldDef('targetHours', 'Sollstunden / Woche', keyboard: TextInputType.number, initial: '40')]);
+  factory _ModuleConfig.timeEntries() => const _ModuleConfig(title: 'Zeiterfassung', subtitle: 'Arbeitszeiten und Pausen dokumentieren', icon: Icons.schedule, type: _ModuleType.timeEntries, fields: [_FieldDef('employeeName', 'Mitarbeiter', required: true), _FieldDef('siteId', 'Baustellen-ID', required: true), _FieldDef('date', 'Datum', required: true), _FieldDef('startTime', 'Beginn', required: true), _FieldDef('endTime', 'Ende'), _FieldDef('breakMinutes', 'Pause in Minuten', keyboard: TextInputType.number, initial: '0'), _FieldDef('notes', 'Notizen')]);
+  factory _ModuleConfig.reports() => const _ModuleConfig(title: 'Berichte', subtitle: 'Baustellenberichte dokumentieren', icon: Icons.description, type: _ModuleType.reports, fields: [_FieldDef('title', 'Titel', required: true), _FieldDef('siteId', 'Baustellen-ID'), _FieldDef('date', 'Datum', required: true), _FieldDef('content', 'Bericht / Inhalt', multiline: true)]);
+  factory _ModuleConfig.materials() => const _ModuleConfig(title: 'Material', subtitle: 'Materialbestand und Artikel verwalten', icon: Icons.inventory_2, type: _ModuleType.materials, fields: [_FieldDef('name', 'Material / Artikel', required: true), _FieldDef('articleNumber', 'Artikelnummer'), _FieldDef('category', 'Kategorie'), _FieldDef('unit', 'Einheit', initial: 'Stk'), _FieldDef('stock', 'Bestand', keyboard: TextInputType.number, initial: '0'), _FieldDef('minimumStock', 'Mindestbestand', keyboard: TextInputType.number, initial: '0'), _FieldDef('location', 'Lagerort'), _FieldDef('unitPrice', 'Einzelpreis', keyboard: TextInputType.number), _FieldDef('notes', 'Notizen', multiline: true)]);
+  factory _ModuleConfig.machines() => const _ModuleConfig(title: 'Maschinen', subtitle: 'Maschinen, Betriebsstunden und Prüfungen', icon: Icons.construction, type: _ModuleType.machines, fields: [_FieldDef('name', 'Maschine', required: true), _FieldDef('serialNumber', 'Seriennummer'), _FieldDef('operatingHours', 'Betriebsstunden', keyboard: TextInputType.number, initial: '0'), _FieldDef('status', 'Status', initial: 'bereit'), _FieldDef('notes', 'Notizen', multiline: true)]);
 }
 
 class _FieldDef {
@@ -481,7 +436,6 @@ class _FieldDef {
   final TextInputType? keyboard;
   final String? initial;
   final bool multiline;
-
   const _FieldDef(this.key, this.label, {this.required = false, this.keyboard, this.initial, this.multiline = false});
 }
 
@@ -550,7 +504,7 @@ class _DataModulePageState extends State<_DataModulePage> {
         content: const Text('Der Datensatz wird dauerhaft aus der lokalen Datenbank entfernt.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Abbrechen')),
-          FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700), onPressed: () => Navigator.pop(context, true), child: const Text('Löschen')),
+          FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Löschen')),
         ],
       ),
     );

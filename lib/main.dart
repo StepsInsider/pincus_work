@@ -1,9 +1,5 @@
-import 'package:flutter/material.dart';
-import 'pincus_workspace_v2.dart';
+import 'pincus_app.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: PincusWorkspace(),
-  ));
+  runApp(const PincusApp());
 }

@@ -1,0 +1,145 @@
+import { join } from 'path';
+import { Client } from 'pg';
+import { NetlifyDev } from '@netlify/dev';
+import { LocalState } from '@netlify/dev-utils';
+import { warn } from '../../../utils/command-helpers.js';
+import { PgClientExecutor } from './pg-client-executor.js';
+export const getLocalDatabaseDirectory = (buildDir) => join(buildDir, '.netlify', 'db');
+// `summary` omits the recovery hint carried by `message`, so `netlify database
+// reset` — which is the recovery — doesn't tell the user to run it.
+export class LocalDatabaseStartError extends Error {
+    directory;
+    summary;
+    constructor(directory, causes) {
+        const summary = [`Failed to start the local database at ${directory}.`, ...causes].join('\n');
+        super(`${summary}\nThe persisted data directory may be unusable. Run \`netlify database reset\` to discard it and start from an empty database.`);
+        this.directory = directory;
+        this.summary = summary;
+    }
+}
+export async function connectToDatabase(buildDir, urlOverride) {
+    const { client, connectionString, cleanup } = await connectRawClient(buildDir, urlOverride);
+    return {
+        executor: new PgClientExecutor(client),
+        connectionString,
+        cleanup,
+    };
+}
+// detectExistingLocalConnectionString returns a connection string for an
+// already-available local database (either the NETLIFY_DB_URL env override or
+// the connection string persisted by a running local dev session) without
+// starting a new dev database. Returns null when nothing's currently
+// available — callers should decide whether starting one is worth the cost.
+export function detectExistingLocalConnectionString(buildDir) {
+    if (process.env.NETLIFY_DB_URL) {
+        return process.env.NETLIFY_DB_URL;
+    }
+    const state = new LocalState(buildDir);
+    const stored = state.get('dbConnectionString');
+    return stored ?? null;
+}
+// Unwraps AggregateError's inner errors into a single readable string. pg's
+// connection errors show up this way when the server resolves to multiple
+// addresses (IPv4/IPv6) and every attempt fails — the outer message is empty
+// without this.
+export const describeError = (err) => {
+    if (err && typeof err === 'object' && 'errors' in err && Array.isArray(err.errors)) {
+        const inner = err.errors
+            .map((e) => (e instanceof Error ? e.message : String(e)))
+            .filter((msg) => msg.length > 0);
+        if (inner.length > 0)
+            return inner.join('; ');
+    }
+    if (err instanceof Error)
+        return err.message || err.name || 'unknown error';
+    return String(err);
+};
+// Detects pg "can't reach the server" errors. pg wraps multi-address attempts
+// (IPv4 + IPv6) in an AggregateError whose outer message is empty, so we also
+// unwrap .errors when present.
+function isConnectionUnreachableError(err) {
+    if (!err || typeof err !== 'object')
+        return false;
+    const code = err.code;
+    if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EHOSTUNREACH')
+        return true;
+    if ('errors' in err && Array.isArray(err.errors)) {
+        return err.errors.some(isConnectionUnreachableError);
+    }
+    return false;
+}
+export async function connectRawClient(buildDir, urlOverride) {
+    const existing = urlOverride ?? detectExistingLocalConnectionString(buildDir);
+    // Explicit overrides (NETLIFY_DB_URL env var, or a urlOverride argument) are
+    // user-supplied and should never be silently discarded on a connection
+    // failure — let the error propagate. A persisted `dbConnectionString` in
+    // LocalState is different: it's a stale record of a prior `netlify dev` run
+    // that may not be running anymore, and we should recover by falling back to
+    // starting a fresh NetlifyDev.
+    const isUserOverride = Boolean(urlOverride ?? process.env.NETLIFY_DB_URL);
+    if (existing) {
+        try {
+            const client = new Client({ connectionString: existing });
+            await client.connect();
+            return {
+                client,
+                connectionString: existing,
+                cleanup: () => client.end(),
+            };
+        }
+        catch (err) {
+            if (isUserOverride || !isConnectionUnreachableError(err)) {
+                throw err;
+            }
+            // Persisted connection string points at a port that nothing is listening
+            // on. Drop the stale record so subsequent calls don't hit the same dead
+            // end, and fall through to the NetlifyDev.start() path.
+            new LocalState(buildDir).delete('dbConnectionString');
+        }
+    }
+    const state = new LocalState(buildDir);
+    // NetlifyDev swallows database startup failures into a warning, so the only
+    // way to report the underlying PGlite error is to capture what it logs.
+    const startupWarnings = [];
+    const netlifyDev = new NetlifyDev({
+        logger: {
+            error: console.error,
+            log: console.log,
+            warn: (message = '') => {
+                startupWarnings.push(message);
+            },
+        },
+        projectRoot: buildDir,
+        aiGateway: { enabled: false },
+        blobs: { enabled: false },
+        edgeFunctions: { enabled: false },
+        environmentVariables: { enabled: false },
+        functions: { enabled: false },
+        geolocation: { enabled: false },
+        headers: { enabled: false },
+        images: { enabled: false },
+        redirects: { enabled: false },
+        staticFiles: { enabled: false },
+        serverAddress: null,
+    });
+    await netlifyDev.start();
+    const connectionString = state.get('dbConnectionString');
+    if (!connectionString) {
+        await netlifyDev.stop();
+        throw new LocalDatabaseStartError(getLocalDatabaseDirectory(buildDir), startupWarnings);
+    }
+    startupWarnings.forEach((message) => {
+        warn(message);
+    });
+    const client = new Client({ connectionString });
+    await client.connect();
+    return {
+        client,
+        connectionString,
+        cleanup: async () => {
+            await client.end();
+            await netlifyDev.stop();
+        },
+    };
+}
+//# sourceMappingURL=db-connection.js.map

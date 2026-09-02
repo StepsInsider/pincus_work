@@ -1,0 +1,140 @@
+import { mkdir, readFile } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { platform } from 'node:os';
+import execa from 'execa';
+import fetch from 'node-fetch';
+import { log, warn } from '../command-helpers.js';
+import { temporaryDirectory } from '../temporary-file.js';
+const DEFAULT_IGNORE_PATTERNS = [
+    'node_modules*',
+    '.git*',
+    '.netlify*',
+    '.next*',
+    'dist*',
+    'build*',
+    '.nuxt*',
+    '.output*',
+    '.vercel*',
+    '__pycache__*',
+    '.venv*',
+    '.env',
+    '.DS_Store',
+    'Thumbs.db',
+    '*.log',
+    '.nyc_output*',
+    'coverage*',
+    '.cache*',
+    '.tmp*',
+    '.temp*',
+];
+const createSourceZip = async ({ sourceDir, filename, statusCb, }) => {
+    // Check for Windows - this feature is not supported on Windows
+    if (platform() === 'win32') {
+        throw new Error('Source zip upload is not supported on Windows');
+    }
+    const tmpDir = temporaryDirectory();
+    const zipPath = join(tmpDir, filename);
+    // Ensure the directory for the zip file exists
+    // The filename from the API includes a subdirectory path (e.g., 'workspace-snapshots/source-xxx.zip')
+    // While temporaryDirectory() creates a new empty directory, the subdirectory within it doesn't exist
+    // so we need to create it before the zip command can write the file
+    await mkdir(dirname(zipPath), { recursive: true });
+    statusCb({
+        type: 'source-zip-upload',
+        msg: `Creating source zip...`,
+        phase: 'start',
+    });
+    // Create exclusion list for zip command
+    const excludeArgs = DEFAULT_IGNORE_PATTERNS.flatMap((pattern) => ['-x', pattern]);
+    // Use system zip command to create the archive
+    try {
+        await execa('zip', ['-r', '-q', zipPath, '.', ...excludeArgs], {
+            all: true,
+            cwd: sourceDir,
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+    }
+    catch (_baseErr) {
+        let message = 'zip command failed';
+        if (_baseErr instanceof Error && 'command' in _baseErr) {
+            const baseErr = _baseErr;
+            message = `${baseErr.shortMessage}\n\n${baseErr.all ?? ''}`;
+        }
+        throw new Error(message, { cause: _baseErr });
+    }
+    return zipPath;
+};
+const uploadZipToS3 = async (zipPath, uploadUrl, statusCb) => {
+    const zipBuffer = await readFile(zipPath);
+    const sizeMB = (zipBuffer.length / 1024 / 1024).toFixed(2);
+    statusCb({
+        type: 'source-zip-upload',
+        msg: `Uploading source zip (${sizeMB} MB)...`,
+        phase: 'progress',
+    });
+    const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: zipBuffer,
+        headers: {
+            'Content-Type': 'application/zip',
+            'Content-Length': zipBuffer.length.toString(),
+        },
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to upload zip: ${response.statusText}`);
+    }
+};
+export const uploadSourceZip = async ({ sourceDir, uploadUrl, filename, statusCb = () => { }, }) => {
+    let zipPath;
+    try {
+        // Create zip from source directory
+        try {
+            zipPath = await createSourceZip({ sourceDir, filename, statusCb });
+        }
+        catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            statusCb({
+                type: 'source-zip-upload',
+                msg: `Failed to create source zip: ${errorMsg}`,
+                phase: 'error',
+            });
+            warn(`Failed to create source zip: ${errorMsg}`);
+            throw error;
+        }
+        let sourceZipFileName;
+        // Upload to S3
+        try {
+            await uploadZipToS3(zipPath, uploadUrl, statusCb);
+            sourceZipFileName = filename;
+        }
+        catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            statusCb({
+                type: 'source-zip-upload',
+                msg: `Failed to upload source zip: ${errorMsg}`,
+                phase: 'error',
+            });
+            warn(`Failed to upload source zip: ${errorMsg}`);
+            throw error;
+        }
+        statusCb({
+            type: 'source-zip-upload',
+            msg: `Source zip uploaded successfully`,
+            phase: 'stop',
+        });
+        log(`✔ Source code uploaded`);
+        return { sourceZipFileName };
+    }
+    finally {
+        // Clean up temporary zip file
+        if (zipPath) {
+            try {
+                await (await import('node:fs/promises')).unlink(zipPath);
+            }
+            catch {
+                // Ignore cleanup errors
+            }
+        }
+    }
+};
+//# sourceMappingURL=upload-source-zip.js.map

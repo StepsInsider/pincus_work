@@ -1,0 +1,64 @@
+/**
+ * Checks whether a value is effectively empty.
+ *
+ * A value is considered empty when it is `null`, `undefined`, or an object
+ * with no own enumerable keys. Intended as a minimal stand-in for the handful
+ * of `lodash/isEmpty` call sites that only ever receive plain objects or
+ * nullish values (e.g. API response payloads that may be absent).
+ *
+ * @param obj - The object to check, or a nullish value.
+ * @returns `true` if the value is nullish or has no own enumerable keys.
+ */
+export declare const isEmpty: (obj: object | null | undefined) => boolean;
+/**
+ * Returns a new object containing only the specified keys from the source.
+ *
+ * Mirrors the shape of `lodash/pick` but is intentionally loosely typed so it
+ * can accept string keys that are not declared on the source type. This is
+ * pragmatic for CLI output filtering of API responses whose generated types
+ * sometimes omit fields the server actually returns.
+ *
+ * Keys that are not present on the source are silently skipped.
+ *
+ * @param obj - The source object to pick properties from.
+ * @param keys - The property names to include in the result.
+ * @returns A new object with only the requested keys that exist on the source.
+ */
+export declare const pick: <T extends object>(obj: T, keys: readonly string[]) => Partial<T>;
+/**
+ * Recursively merges the properties of `source` into a copy of `target`.
+ *
+ * Behavior matches `lodash/merge` in the ways the existing call sites rely on:
+ * - `undefined` source values are skipped, preserving any existing value in
+ *   the target. This lets callers pass partial patch objects without having
+ *   to strip keys that happen to be `undefined` (e.g. `storeToken` in
+ *   `base-command.ts` passes `{ github: { user: undefined, token: undefined } }`
+ *   and relies on the existing GitHub auth fields being preserved).
+ * - `null` source values DO overwrite -- only `undefined` is treated as
+ *   "no-op".
+ * - Only plain (non-array) objects are merged recursively; arrays and
+ *   primitive values from `source` overwrite the corresponding value in
+ *   `target`.
+ *
+ * Neither argument is mutated.
+ *
+ * @param target - The base object to merge into. `undefined` is treated as `{}`.
+ * @param source - The object whose properties take precedence over `target`.
+ * @returns A new object containing the combined properties.
+ */
+export declare function deepMerge<T extends Record<string, unknown>>(target: T | undefined, source: Record<string, unknown>): T;
+/**
+ * Wraps a function so that it runs at most once per `intervalMs` milliseconds.
+ *
+ * Uses leading-edge invocation: the first call runs immediately, and any calls
+ * that arrive within `intervalMs` of the previous invocation are dropped.
+ * There is no trailing call -- this is intentional for fire-and-forget
+ * side-effect callers (e.g. rate-limited activity pings) where losing the
+ * final invocation is acceptable.
+ *
+ * @param fn - The function to throttle.
+ * @param intervalMs - Minimum time between invocations, in milliseconds.
+ * @returns A throttled wrapper around `fn` with the same arguments signature.
+ */
+export declare function throttle<Args extends unknown[]>(fn: (...args: Args) => void, intervalMs: number): (...args: Args) => void;
+//# sourceMappingURL=object-utilities.d.ts.map

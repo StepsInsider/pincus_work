@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import 'connection.dart';
 
 part 'app_database.g.dart';
 
@@ -29,9 +26,11 @@ class Employees extends Table {
 
   TextColumn get role => text()();
 
-  RealColumn get targetHours => real().withDefault(const Constant(40.0))();
+  RealColumn get targetHours =>
+      real().withDefault(const Constant(40.0))();
 
-  TextColumn get color => text().withDefault(const Constant('0xFF2E7D32'))();
+  TextColumn get color =>
+      text().withDefault(const Constant('0xFF2E7D32'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -44,25 +43,31 @@ class Sites extends Table {
 
   TextColumn get address => text()();
 
-  TextColumn get customerId => text().nullable().references(Customers, #id)();
+  TextColumn get customerId =>
+      text().nullable().references(Customers, #id)();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }
 
 class Orders extends Table {
   TextColumn get id => text()();
 
-  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+  IntColumn get siteId =>
+      integer().nullable().references(Sites, #id)();
 
-  TextColumn get customerId => text().nullable().references(Customers, #id)();
+  TextColumn get customerId =>
+      text().nullable().references(Customers, #id)();
 
   TextColumn get title => text()();
 
-  TextColumn get status => text().withDefault(const Constant('Neu'))();
+  TextColumn get status =>
+      text().withDefault(const Constant('Neu'))();
 
   TextColumn get date => text()();
 
-  RealColumn get price => real().withDefault(const Constant(0.0))();
+  RealColumn get price =>
+      real().withDefault(const Constant(0.0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -71,7 +76,8 @@ class Orders extends Table {
 class Reports extends Table {
   TextColumn get id => text()();
 
-  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+  IntColumn get siteId =>
+      integer().nullable().references(Sites, #id)();
 
   TextColumn get title => text()();
 
@@ -86,7 +92,8 @@ class Reports extends Table {
 class TimeEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  IntColumn get siteId => integer().references(Sites, #id)();
+  IntColumn get siteId =>
+      integer().references(Sites, #id)();
 
   TextColumn get employeeName => text()();
 
@@ -96,17 +103,20 @@ class TimeEntries extends Table {
 
   DateTimeColumn get endTime => dateTime().nullable()();
 
-  RealColumn get breakMinutes => real().withDefault(const Constant(0.0))();
+  RealColumn get breakMinutes =>
+      real().withDefault(const Constant(0.0))();
 
   TextColumn get notes => text().nullable()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }
 
 class SitePhotos extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  IntColumn get siteId => integer().references(Sites, #id)();
+  IntColumn get siteId =>
+      integer().references(Sites, #id)();
 
   TextColumn get category => text()();
 
@@ -118,13 +128,15 @@ class SitePhotos extends Table {
 
   RealColumn get longitude => real().nullable()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }
 
 class TasksTable extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  IntColumn get siteId => integer().nullable().references(Sites, #id)();
+  IntColumn get siteId =>
+      integer().nullable().references(Sites, #id)();
 
   TextColumn get title => text()();
 
@@ -132,13 +144,16 @@ class TasksTable extends Table {
 
   TextColumn get category => text()();
 
-  TextColumn get priority => text().withDefault(const Constant('normal'))();
+  TextColumn get priority =>
+      text().withDefault(const Constant('normal'))();
 
-  TextColumn get status => text().withDefault(const Constant('offen'))();
+  TextColumn get status =>
+      text().withDefault(const Constant('offen'))();
 
   DateTimeColumn get dueDate => dateTime().nullable()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }
 
 class MachinesTable extends Table {
@@ -148,15 +163,19 @@ class MachinesTable extends Table {
 
   TextColumn get serialNumber => text().nullable()();
 
-  RealColumn get operatingHours => real().withDefault(const Constant(0.0))();
+  RealColumn get operatingHours =>
+      real().withDefault(const Constant(0.0))();
 
-  DateTimeColumn get nextInspectionDate => dateTime().nullable()();
+  DateTimeColumn get nextInspectionDate =>
+      dateTime().nullable()();
 
-  TextColumn get status => text().withDefault(const Constant('bereit'))();
+  TextColumn get status =>
+      text().withDefault(const Constant('bereit'))();
 
   TextColumn get notes => text().nullable()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 }
 
 class MaterialsTable extends Table {
@@ -168,11 +187,14 @@ class MaterialsTable extends Table {
 
   TextColumn get category => text().nullable()();
 
-  TextColumn get unit => text().withDefault(const Constant('Stk'))();
+  TextColumn get unit =>
+      text().withDefault(const Constant('Stk'))();
 
-  RealColumn get stock => real().withDefault(const Constant(0.0))();
+  RealColumn get stock =>
+      real().withDefault(const Constant(0.0))();
 
-  RealColumn get minimumStock => real().withDefault(const Constant(0.0))();
+  RealColumn get minimumStock =>
+      real().withDefault(const Constant(0.0))();
 
   TextColumn get location => text().nullable()();
 
@@ -180,7 +202,8 @@ class MaterialsTable extends Table {
 
   TextColumn get notes => text().nullable()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt =>
+      dateTime().withDefault(currentDateAndTime)();
 
   DateTimeColumn get updatedAt => dateTime().nullable()();
 }
@@ -200,7 +223,7 @@ class MaterialsTable extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(openConnection());
 
   @override
   int get schemaVersion => 2;
@@ -219,22 +242,11 @@ class AppDatabase extends _$AppDatabase {
           }
         },
         beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
+          await customStatement(
+            'PRAGMA foreign_keys = ON',
+          );
         },
       );
-
-  static LazyDatabase _openConnection() {
-    return LazyDatabase(() async {
-      final dbFolder = await getApplicationDocumentsDirectory();
-
-      final file = File(
-        p.join(
-          dbFolder.path,
-          'pincus_database.db',
-        ),
-      );
-
-      return NativeDatabase(file);
-    });
-  }
 }
+
+flutter pub get && flutter build web --release

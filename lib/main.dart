@@ -170,7 +170,8 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         return _DataModulePage(
           title: 'Baustellen',
           icon: Icons.location_on,
-          items: _db.sites,
+          db: _db,
+          table: 'sites',
           primaryField: 'title',
           secondaryField: 'address',
           dbLabel: 'Baustellen',
@@ -179,7 +180,8 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         return _DataModulePage(
           title: 'Kunden',
           icon: Icons.people,
-          items: _db.customers,
+          db: _db,
+          table: 'customers',
           primaryField: 'name',
           secondaryField: 'phone',
           dbLabel: 'Kunden',
@@ -188,8 +190,9 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         return _DataModulePage(
           title: 'Aufträge',
           icon: Icons.assignment,
-          items: _db.orders,
-          primaryField: 'description',
+          db: _db,
+          table: 'orders',
+          primaryField: 'title',
           secondaryField: 'status',
           dbLabel: 'Aufträge',
         );
@@ -197,7 +200,8 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         return _DataModulePage(
           title: 'Mitarbeiter',
           icon: Icons.groups,
-          items: _db.employees,
+          db: _db,
+          table: 'employees',
           primaryField: 'name',
           secondaryField: 'role',
           dbLabel: 'Mitarbeiter',
@@ -206,39 +210,43 @@ class _PincusWorkShellState extends State<PincusWorkShell> {
         return _DataModulePage(
           title: 'Zeiterfassung',
           icon: Icons.schedule,
-          items: _db.timeEntries,
-          primaryField: 'employee',
-          secondaryField: 'task',
+          db: _db,
+          table: 'timeEntries',
+          primaryField: 'employeeName',
+          secondaryField: 'date',
           dbLabel: 'Zeiteinträge',
         );
       case 6:
         return const CalendarFeatureScreen();
       case 7:
         return _DataModulePage(
-          title: 'Angebote',
-          icon: Icons.request_quote,
-          items: _db.estimates,
-          primaryField: 'title',
-          secondaryField: 'customer',
-          dbLabel: 'Angebote',
-        );
-      case 8:
-        return _DataModulePage(
           title: 'Berichte',
           icon: Icons.description,
-          items: _db.reports,
+          db: _db,
+          table: 'reports',
           primaryField: 'title',
           secondaryField: 'date',
           dbLabel: 'Berichte',
         );
+      case 8:
+        return _DataModulePage(
+          title: 'Aufgaben',
+          icon: Icons.task,
+          db: _db,
+          table: 'tasks',
+          primaryField: 'title',
+          secondaryField: 'status',
+          dbLabel: 'Aufgaben',
+        );
       case 9:
         return _DataModulePage(
-          title: 'Material',
-          icon: Icons.inventory_2,
-          items: _db.materials,
+          title: 'Maschinen',
+          icon: Icons.construction,
+          db: _db,
+          table: 'machines',
           primaryField: 'name',
-          secondaryField: 'category',
-          dbLabel: 'Material',
+          secondaryField: 'serialNumber',
+          dbLabel: 'Maschinen',
         );
       default:
         return _DashboardPage(db: _db);
@@ -254,114 +262,171 @@ class _ModuleItem {
   const _ModuleItem(this.icon, this.selectedIcon, this.label);
 }
 
-class _DashboardPage extends StatelessWidget {
+class _DashboardPage extends StatefulWidget {
   final AppDatabase db;
 
   const _DashboardPage({required this.db});
 
   @override
-  Widget build(BuildContext context) {
-    final totalHours = db.timeEntries.fold<double>(
+  State<_DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<_DashboardPage> {
+  late Future<DashboardData> _dashboardDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardDataFuture = _loadDashboardData();
+  }
+
+  Future<DashboardData> _loadDashboardData() async {
+    final sites = await widget.db.select(widget.db.sites).get();
+    final customers = await widget.db.select(widget.db.customers).get();
+    final employees = await widget.db.select(widget.db.employees).get();
+    final timeEntries = await widget.db.select(widget.db.timeEntries).get();
+
+    final totalHours = timeEntries.fold<double>(
       0,
-      (sum, entry) {
-        final value = double.tryParse('${entry['hours']}') ?? 0;
-        return sum + value;
-      },
+      (sum, entry) => sum + (entry.endTime != null
+          ? entry.endTime!.difference(entry.startTime).inMinutes / 60.0
+          : 0),
     );
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Pincus Baum und Landschaftspflege',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1B5E20),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Baustellenmanagement & Unternehmensverwaltung',
-            style: TextStyle(fontSize: 16, color: Colors.black54),
-          ),
-          const SizedBox(height: 28),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = constraints.maxWidth > 1100
-                  ? 4
-                  : constraints.maxWidth > 650
-                      ? 2
-                      : 1;
-
-              return GridView.count(
-                crossAxisCount: columns,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 2.1,
-                children: [
-                  _StatCard(
-                    icon: Icons.location_on,
-                    title: 'Baustellen',
-                    value: '${db.sites.length}',
-                    subtitle: 'Aktive Standorte',
-                  ),
-                  _StatCard(
-                    icon: Icons.people,
-                    title: 'Kunden',
-                    value: '${db.customers.length}',
-                    subtitle: 'Kunden im System',
-                  ),
-                  _StatCard(
-                    icon: Icons.groups,
-                    title: 'Mitarbeiter',
-                    value: '${db.employees.length}',
-                    subtitle: 'Teammitglieder',
-                  ),
-                  _StatCard(
-                    icon: Icons.schedule,
-                    title: 'Arbeitsstunden',
-                    value: totalHours.toStringAsFixed(1),
-                    subtitle: 'Erfasste Stunden',
-                  ),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: 28),
-
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 900) {
-                return Column(
-                  children: [
-                    _UpcomingEvents(db: db),
-                    const SizedBox(height: 16),
-                    _QuickActions(),
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _UpcomingEvents(db: db)),
-                  const SizedBox(width: 16),
-                  Expanded(child: _QuickActions()),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+    return DashboardData(
+      sitesCount: sites.length,
+      customersCount: customers.length,
+      employeesCount: employees.length,
+      totalHours: totalHours,
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DashboardData>(
+      future: _dashboardDataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Fehler beim Laden der Daten: ${snapshot.error}'),
+          );
+        }
+
+        final data = snapshot.data ?? DashboardData.empty();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pincus Baum und Landschaftspflege',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1B5E20),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Baustellenmanagement & Unternehmensverwaltung',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 28),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth > 1100
+                      ? 4
+                      : constraints.maxWidth > 650
+                          ? 2
+                          : 1;
+
+                  return GridView.count(
+                    crossAxisCount: columns,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 2.1,
+                    children: [
+                      _StatCard(
+                        icon: Icons.location_on,
+                        title: 'Baustellen',
+                        value: '${data.sitesCount}',
+                        subtitle: 'Aktive Standorte',
+                      ),
+                      _StatCard(
+                        icon: Icons.people,
+                        title: 'Kunden',
+                        value: '${data.customersCount}',
+                        subtitle: 'Kunden im System',
+                      ),
+                      _StatCard(
+                        icon: Icons.groups,
+                        title: 'Mitarbeiter',
+                        value: '${data.employeesCount}',
+                        subtitle: 'Teammitglieder',
+                      ),
+                      _StatCard(
+                        icon: Icons.schedule,
+                        title: 'Arbeitsstunden',
+                        value: data.totalHours.toStringAsFixed(1),
+                        subtitle: 'Erfasste Stunden',
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 28),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 900) {
+                    return Column(
+                      children: [
+                        const _QuickActions(),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(child: _QuickActions()),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class DashboardData {
+  final int sitesCount;
+  final int customersCount;
+  final int employeesCount;
+  final double totalHours;
+
+  DashboardData({
+    required this.sitesCount,
+    required this.customersCount,
+    required this.employeesCount,
+    required this.totalHours,
+  });
+
+  factory DashboardData.empty() => DashboardData(
+        sitesCount: 0,
+        customersCount: 0,
+        employeesCount: 0,
+        totalHours: 0,
+      );
 }
 
 class _StatCard extends StatelessWidget {
@@ -427,61 +492,6 @@ class _StatCard extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UpcomingEvents extends StatelessWidget {
-  final AppDatabase db;
-
-  const _UpcomingEvents({required this.db});
-
-  @override
-  Widget build(BuildContext context) {
-    final events = db.calendarEvents;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.event, color: Color(0xFF2E7D32)),
-                SizedBox(width: 8),
-                Text(
-                  'Nächste Termine',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (events.isEmpty)
-              const Text('Keine Termine vorhanden.')
-            else
-              ...events.take(4).map(
-                    (event) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0xFFE8F5E9),
-                        child: Icon(
-                          Icons.work,
-                          color: Color(0xFF2E7D32),
-                        ),
-                      ),
-                      title: Text('${event['title']}'),
-                      subtitle: Text(
-                        '${event['date']} • ${event['time']} • ${event['assigned']}',
-                      ),
-                    ),
-                  ),
           ],
         ),
       ),
@@ -564,10 +574,11 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-class _DataModulePage extends StatelessWidget {
+class _DataModulePage extends StatefulWidget {
   final String title;
   final IconData icon;
-  final List<Map<String, dynamic>> items;
+  final AppDatabase db;
+  final String table;
   final String primaryField;
   final String secondaryField;
   final String dbLabel;
@@ -575,85 +586,158 @@ class _DataModulePage extends StatelessWidget {
   const _DataModulePage({
     required this.title,
     required this.icon,
-    required this.items,
+    required this.db,
+    required this.table,
     required this.primaryField,
     required this.secondaryField,
     required this.dbLabel,
   });
 
   @override
+  State<_DataModulePage> createState() => _DataModulePageState();
+}
+
+class _DataModulePageState extends State<_DataModulePage> {
+  late Future<List<dynamic>> _dataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataFuture = _loadData();
+  }
+
+  Future<List<dynamic>> _loadData() async {
+    switch (widget.table) {
+      case 'sites':
+        return widget.db.select(widget.db.sites).get();
+      case 'customers':
+        return widget.db.select(widget.db.customers).get();
+      case 'orders':
+        return widget.db.select(widget.db.orders).get();
+      case 'employees':
+        return widget.db.select(widget.db.employees).get();
+      case 'timeEntries':
+        return widget.db.select(widget.db.timeEntries).get();
+      case 'reports':
+        return widget.db.select(widget.db.reports).get();
+      case 'tasks':
+        return widget.db.select(widget.db.tasksTable).get();
+      case 'machines':
+        return widget.db.select(widget.db.machinesTable).get();
+      default:
+        return [];
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return FutureBuilder<List<dynamic>>(
+      future: _dataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Fehler beim Laden: ${snapshot.error}'),
+          );
+        }
+
+        final items = snapshot.data ?? [];
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: const Color(0xFF2E7D32), size: 30),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B5E20),
-                ),
-              ),
-              const Spacer(),
-              FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.add),
-                label: Text('Neu'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${items.length} $dbLabel im lokalen Datenbestand',
-            style: const TextStyle(color: Colors.black54),
-          ),
-          const SizedBox(height: 20),
-          if (items.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(30),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(icon, size: 48, color: Colors.black26),
-                      const SizedBox(height: 12),
-                      Text('Noch keine $dbLabel vorhanden.'),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          else
-            ...items.map(
-              (item) => Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFE8F5E9),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF2E7D32),
+              Row(
+                children: [
+                  Icon(widget.icon, color: const Color(0xFF2E7D32), size: 30),
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B5E20),
                     ),
                   ),
-                  title: Text(
-                    '${item[primaryField] ?? ''}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.add),
+                    label: const Text('Neu'),
                   ),
-                  subtitle: Text(
-                    '${item[secondaryField] ?? ''}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                ),
+                ],
               ),
-            ),
-        ],
-      ),
+              const SizedBox(height: 8),
+              Text(
+                '${items.length} ${widget.dbLabel} im lokalen Datenbestand',
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 20),
+              if (items.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(widget.icon, size: 48, color: Colors.black26),
+                          const SizedBox(height: 12),
+                          Text('Noch keine ${widget.dbLabel} vorhanden.'),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...items.map(
+                  (item) {
+                    String primary = '';
+                    String secondary = '';
+
+                    if (item is Map) {
+                      primary = '${item[widget.primaryField] ?? ''}';
+                      secondary = '${item[widget.secondaryField] ?? ''}';
+                    } else {
+                      // Drift Modelle haben reflektive Eigenschaften
+                      try {
+                        final primaryField = item.toJson()[widget.primaryField] ?? '';
+                        final secondaryField = item.toJson()[widget.secondaryField] ?? '';
+                        primary = primaryField.toString();
+                        secondary = secondaryField.toString();
+                      } catch (_) {
+                        primary = 'Eintrag';
+                        secondary = '';
+                      }
+                    }
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFFE8F5E9),
+                          child: Icon(
+                            widget.icon,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                        title: Text(
+                          primary,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(secondary),
+                        trailing: const Icon(Icons.chevron_right),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -666,24 +750,23 @@ class CalendarFeatureScreen extends StatefulWidget {
 }
 
 class _CalendarFeatureScreenState extends State<CalendarFeatureScreen> {
-  final AppDatabase _db = AppDatabase();
   int _selectedMonth = 9;
 
   @override
   Widget build(BuildContext context) {
     final months = [
-      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
+      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
       'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
     ];
-    
+
     final daysInMonth = List.generate(
-      DateTime(2026, _selectedMonth + 1, 0).day, 
+      DateTime(2026, _selectedMonth + 1, 0).day,
       (i) => DateTime(2026, _selectedMonth, i + 1)
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jahreskalender & Einsatzübersicht 2026', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+        title: const Text('Jahreskalender & Einsatzübersicht 2026', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF2E7D32)
       ),
       body: Padding(
@@ -715,7 +798,7 @@ class _CalendarFeatureScreenState extends State<CalendarFeatureScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Monatsansicht: ${months[_selectedMonth - 1]} 2026 – Klicken Sie auf einen Tag für Details:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
+            Text('Monatsansicht: ${months[_selectedMonth - 1]} 2026', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.builder(
@@ -728,68 +811,22 @@ class _CalendarFeatureScreenState extends State<CalendarFeatureScreen> {
                 itemCount: daysInMonth.length,
                 itemBuilder: (context, index) {
                   final date = daysInMonth[index];
-                  final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                  
-                  final dayEvents = _db.calendarEvents.where((e) => e['date'] == dateStr).toList();
-                  final dayTimes = _db.timeEntries.where((t) => t['date'] == dateStr).toList();
-                  bool hasActivity = dayEvents.isNotEmpty || dayTimes.isNotEmpty;
 
-                  return InkWell(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text('Einsätze & Details am ${date.day}.${date.month}.${date.year}'),
-                          content: SizedBox(
-                            width: 400,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Geplante Termine / Baustellen:', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                                if (dayEvents.isEmpty) const Text('• Keine Termine an diesem Tag'),
-                                ...dayEvents.map((e) => Text('• ${e["title"]} (Zuständig: ${e["assigned"]})')),
-                                const SizedBox(height: 16),
-                                const Text('Erfasste Arbeitsstunden:', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                                if (dayTimes.isEmpty) const Text('• Keine Stunden erfasst'),
-                                ...dayTimes.map((t) => Text('• Mitarbeiter: ${t["employee"]} | ${t["task"]} | ${t["hours"]} Std.')),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Schließen'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: hasActivity ? const Color(0xFFC8E6C9) : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: hasActivity ? const Color(0xFF2E7D32) : Colors.grey.shade300, width: hasActivity ? 2 : 1),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
-                      ),
-                      padding: const EdgeInsets.all(6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('${date.day}.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasActivity ? const Color(0xFF1B5E20) : Colors.black87)),
-                          if (hasActivity)
-                            Row(
-                              children: [
-                                const Icon(Icons.work, size: 12, color: Color(0xFF2E7D32)),
-                                const SizedBox(width: 4),
-                                Text('${dayEvents.length + dayTimes.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                              ],
-                            )
-                          else
-                            const Text('-', style: TextStyle(color: Colors.grey, fontSize: 11)),
-                        ],
-                      ),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))],
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('${date.day}.', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                        const Text('-', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      ],
                     ),
                   );
                 },
